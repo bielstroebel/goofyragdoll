@@ -1,0 +1,124 @@
+local player = game.Players.LocalPlayer
+local uis = game:GetService("UserInputService")
+
+-- Criar GUI só uma vez
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.Name = "CairInfoGui"
+screenGui.ResetOnSpawn = false
+
+local texto = Instance.new("TextLabel", screenGui)
+texto.Size = UDim2.new(0, 250, 0, 30)
+texto.Position = UDim2.new(0.5, -125, 0.9, 0)
+texto.BackgroundTransparency = 0.4
+texto.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+texto.TextColor3 = Color3.fromRGB(255, 255, 255)
+texto.Font = Enum.Font.SourceSansBold
+texto.TextScaled = true
+texto.Text = "press "J" to fall down"
+texto.Active = true -- necessário para receber input do mouse
+texto.Draggable = false -- vamos fazer drag manual
+
+local dragging = false
+local dragInput
+local dragStart
+local startPos
+
+-- Função para atualizar a posição enquanto arrasta
+local function updateInput(input)
+    local delta = input.Position - dragStart
+    texto.Position = UDim2.new(
+        startPos.X.Scale,
+        startPos.X.Offset + delta.X,
+        startPos.Y.Scale,
+        startPos.Y.Offset + delta.Y
+    )
+end
+
+-- Eventos para arrastar o texto
+texto.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = texto.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+texto.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+uis.InputChanged:Connect(function(input)
+    if dragging and input == dragInput then
+        updateInput(input)
+    end
+end)
+
+-- Variáveis do personagem
+local isFrozen = false
+local humanoid, hrp
+
+local function freezeCharacter()
+    if not humanoid or not hrp then return end
+    isFrozen = true
+    humanoid.PlatformStand = true
+    humanoid.AutoRotate = false
+    humanoid.WalkSpeed = 0
+    humanoid.JumpPower = 0
+    hrp.Anchored = true
+    task.wait(0.05)
+    hrp.Anchored = false
+    humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+    for _, part in pairs(hrp.Parent:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = true
+        end
+    end
+end
+
+local function unfreezeCharacter()
+    if not humanoid then return end
+    isFrozen = false
+    humanoid.PlatformStand = false
+    humanoid.AutoRotate = true
+    humanoid.WalkSpeed = 16
+    humanoid.JumpPower = 50
+    humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+end
+
+local function onInput(input, gameProcessed)
+    if gameProcessed then return end
+    if isFrozen and input.UserInputType == Enum.UserInputType.Keyboard then
+        humanoid:Move(Vector3.new(0, 0, 0), false)
+    end
+    if input.KeyCode == Enum.KeyCode.J then
+        if isFrozen then
+            unfreezeCharacter()
+        else
+            freezeCharacter()
+        end
+    end
+end
+
+local function setupCharacter(char)
+    humanoid = char:WaitForChild("Humanoid")
+    hrp = char:WaitForChild("HumanoidRootPart")
+    isFrozen = false
+end
+
+if player.Character then
+    setupCharacter(player.Character)
+end
+
+player.CharacterAdded:Connect(function(char)
+    setupCharacter(char)
+end)
+
+uis.InputBegan:Connect(onInput)
