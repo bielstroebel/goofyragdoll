@@ -14,7 +14,7 @@ texto.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 texto.TextColor3 = Color3.fromRGB(255, 255, 255)
 texto.Font = Enum.Font.SourceSansBold
 texto.TextScaled = true
-texto.Text = "press "J" to fall down"
+texto.Text = "Aperte J para cair."
 texto.Active = true -- necessário para receber input do mouse
 texto.Draggable = false -- vamos fazer drag manual
 
